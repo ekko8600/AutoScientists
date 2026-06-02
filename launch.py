@@ -36,7 +36,7 @@ ship a LAUNCH.md somewhere on that walk; there is no generic fallback.
 
 For all task types, after launch the orchestrator reads runbook.md + task-profile.md:
   cd <run-dir>
-  # Open runbook.md in a Claude Code session and execute it step by step.
+  # Run OpenCode non-interactively with runbook.md as the orchestrator program.
 """
 
 import argparse
@@ -242,7 +242,7 @@ shutil.copy2(_task_launch_md, RUN_DIR / "task-profile.md")
 print(f"  Copied: {_task_launch_md.relative_to(TEMPLATE_DIR)} → task-profile.md")
 
 if IS_BENCHMARK:
-    print(f"  To run: open {RUN_DIR}/{program_file} in a Claude Code session and follow it.")
+    print(f"  To run: open {RUN_DIR}/{program_file} in an OpenCode session and follow it.")
 
 # ── Protein substitution ─────────────────────────────────────
 # If --protein is given, rewrite the placeholder protein name in task/*.md files.
@@ -602,7 +602,7 @@ def setup_agent(name, desc, role, server, gpu):
         creds_path.write_text(json.dumps({"api_key": token, "agent_name": name}, indent=2))
         creds_path.chmod(0o600)
 
-    # AGENT.md — the agent's identity file (like CLAUDE.md)
+    # AGENT.md — the agent's identity file (loaded explicitly by HEARTBEAT.md)
     agent_md_path = agent_dir / "AGENT.md"
     if not agent_md_path.exists():
         gpu_line = f"GPU agent on GPU {gpu}." if role == "gpu" else f"{role.title()} agent."
@@ -961,7 +961,7 @@ No monitor intervention is required.
 
   To run the orchestrator:
 
-    claude -p "Read {ROOT / program_file} and execute"
+    opencode run --dir "{ROOT}" "Read {ROOT / program_file} and execute"
 """)
 
 

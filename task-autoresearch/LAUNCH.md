@@ -121,8 +121,7 @@ gpu_agents = [f"{PREFIX}_gpu{i}" for i in range(1, 7)]
 
 for i, agent_name in enumerate(gpu_agents):
     cuda = "0" if i % 2 == 0 else "1"
-    Task(
-        subagent_type="general-purpose",
+    Agent(
         description=f"{agent_name} experiment",
         prompt=(
             f"You are {agent_name}.\n"

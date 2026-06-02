@@ -160,7 +160,7 @@ with open(f"{FOCUS_ROOT}/logs/experiments.jsonl", "a") as f:
 
 ```bash
 # Orchestrator captures:
-claude -p "..." 2>&1 | tee logs/raw/${AGENT}_$(date +%Y%m%d_%H%M%S).log
+opencode run --dir "$AGENT_DIR" "..." 2>&1 | tee logs/raw/${AGENT}_$(date +%Y%m%d_%H%M%S).log
 ```
 
 ## 4. agents/{name}/actions.md — Per-Agent History

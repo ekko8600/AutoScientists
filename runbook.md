@@ -70,8 +70,11 @@ If `logs/sessions.jsonl` or `logs/experiments.jsonl` has entries:
 import json, os, yaml, requests
 from datetime import datetime, timezone
 from pathlib import Path
+import sys
 
 FOCUS_ROOT = Path("<ablation dir>")
+sys.path.insert(0, str(FOCUS_ROOT / "system"))
+from opencode_runner import Agent, reap_background_agents, wait_for_background_agents
 WS_ID      = (FOCUS_ROOT / "WORKSPACE_ID").read_text().strip()
 WORKSHOP   = (FOCUS_ROOT / "WORKSHOP_NAME").read_text().strip()
 tokens     = json.loads((FOCUS_ROOT / "agent_tokens.json").read_text())
@@ -102,6 +105,7 @@ Before proceeding, read these to understand the system:
 ```
 system/reference/SKILL.md          — how multi-agent coordination works
 system/reference/LOGGING.md        — log formats
+system/reference/OPENCODE-RUNNER.md — OpenCode worker launcher and model configuration
 system/templates/HEARTBEAT.md      — agent boot template (launch.py uses this)
 task/TASK.md                       — the task problem definition
 task-profile.md                    — the task-specific hooks (the rest of *your* program is right here in runbook.md)
@@ -130,16 +134,16 @@ for agent_name in non_admin_agents:
             f"{extra_discussion_instructions}"   # from the profile hook
         ),
         run_in_background=True,
-        model="sonnet"
+        model=os.environ.get("OPENCODE_ANALYST_MODEL")
     )
+wait_for_background_agents()
 ```
 
-> **Model choice.** Haiku-class analysts have a documented "describe instead of
+> **Model choice.** Small analyst models have a documented "describe instead of
 > do" failure mode in this workflow: they write elaborate local memory files
 > claiming the work is done but never call the workshop API, leaving the queue
-> unrefilled. Empirically reproduced in the 2026-05-26 gpt-nano-agents run —
-> three of three haiku analysts hallucinated "no API available in this
-> environment." Always use **sonnet or opus** for analysts; reserve haiku for
+> unrefilled. Configure a capable analyst model with `OPENCODE_ANALYST_MODEL`
+> using OpenCode's `provider/model` format. Reserve small models for
 > deterministic mechanical work outside this loop.
 
 **`MODE=discussion` is mandatory.** Without it, the heartbeat's Mode Selector cannot route GPU agents to the Discussion branch, and they will fall through to "no team → exit" or freelance experiments.
@@ -178,11 +182,18 @@ assert len(teams) >= 2, "Teams not formed properly"
 
 ## Step 5 — Execution loop
 
+Before each cycle, call `reap_background_agents()` to close completed OpenCode
+workers and surface worker failures. Whenever a profile launches a batch with
+`run_in_background=True` and says to wait for that batch, call
+`wait_for_background_agents()` at that synchronization point.
+
+
 ```python
 cycle_count = 0
 while True:
     cycle_count += 1
     print(f"\n{'='*60}\nCYCLE {cycle_count}\n{'='*60}\n")
+    reap_background_agents()
 
     # 5a — Pre-cycle check (may signal early exit)
     if pre_cycle_check():    # ← PROFILE HOOK
@@ -206,19 +217,20 @@ while True:
 
 ### 5b. Launch analysts IN PARALLEL
 
-Analysts run on CPU. **Use `sonnet` (or `opus`), never `haiku`** — see model
-note in Step 3. Launch all 3 in a single message and wait.
+Analysts run on CPU. Configure a capable model with `OPENCODE_ANALYST_MODEL` —
+see the model note in Step 3. Launch all 3 workers in parallel and wait at the
+Step 5d synchronization point.
 
 **Every launch prompt in Step 5 must include `MODE=execute`** so the heartbeat Mode Selector routes the agent to Part 4 (Normal Cycle).
 
 ```python
 analysts = [f"{PREFIX}_analyst{i}" for i in (1, 2, 3)]
 
-# Send ONE message with all 3 Task calls (parallel)
+# Start all 3 OpenCode workers before waiting so they run in parallel.
 for analyst_name in analysts:
-    Task(
-        subagent_type="general-purpose",
-        model="sonnet",
+    Agent(
+        run_in_background=True,
+        model=os.environ.get("OPENCODE_ANALYST_MODEL"),
         description=f"{analyst_name} cycle",
         prompt=(
             f"You are {analyst_name}.\n"
@@ -230,7 +242,8 @@ for analyst_name in analysts:
             f"When done: <promise>{analyst_name} cycle complete</promise>"
         ),
     )
-# Wait for all 3 to complete.
+# Do not wait here: a profile may dispatch GPU workers concurrently.
+# Step 5d synchronizes the full cycle.
 ```
 
 → PROFILE HOOK: `analyst_prompt_extras` (extra env vars, deadline reminders, diversity rules — append to the prompt)
@@ -245,6 +258,13 @@ This is the biggest variation between profiles, so the entire body lives in the 
 - Each agent reads its own HEARTBEAT.md — do not embed workspace IDs, team names, or step-by-step instructions in the prompt.
 
 ### 5d. Wait and log
+
+Wait for any OpenCode workers that the analyst or GPU dispatch phases launched
+in the background, then append session records:
+
+```python
+wait_for_background_agents()
+```
 
 When each agent finishes, append a session record:
 
