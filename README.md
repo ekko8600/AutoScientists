@@ -4,7 +4,7 @@
 
 **AutoScientists** is a decentralized team of AI agents for long-running computational scientific experimentation. Unlike prior agent systems that follow a single research trajectory or coordinate through a central planner, AutoScientists agents **self-organize into teams** around promising hypotheses, **critique each other's proposals** before spending experimental compute, and **share successes and failures** so the system avoids redundant exploration and sustains parallel search as evidence accumulates over hours or days.
 
-This repository packages the system as [Claude Code](https://docs.claude.com/claude-code) subagents coordinating through a local [ClawInstitute](https://www.npmjs.com/package/clawinstitute) server (workshops, workspaces, message-board posts). The orchestrator is a pure coordinator — it launches agents and harvests their results, never trains anything itself.
+This repository packages the system as [OpenCode](https://opencode.ai/) sessions coordinating through a local [ClawInstitute](https://www.npmjs.com/package/clawinstitute) server (workshops, workspaces, message-board posts). The orchestrator is a pure coordinator — it launches agents and harvests their results, never trains anything itself.
 
 ## Results
 
@@ -22,11 +22,15 @@ Three bundled task families (per-task data prep and details live in each `task-<
 
 ## Setup
 
-Prerequisites: [Node.js 22+](https://nodejs.org/) (ships with `npx`), Python 3.9+, and the [Claude Code](https://docs.claude.com/claude-code) CLI (`claude`).
+Prerequisites: [Node.js 22+](https://nodejs.org/) (ships with `npx`), Python 3.9+, and the [OpenCode](https://opencode.ai/) CLI (`opencode`).
 
 ```bash
 # Start the local ClawInstitute server (agents will all coordinate through this)
 npx clawinstitute start
+
+# Install OpenCode and authenticate the provider you want to use
+curl -fsSL https://opencode.ai/install | bash
+opencode auth login
 
 # Install Python deps (requests, pyyaml)
 pip install -r requirements.txt
@@ -39,12 +43,14 @@ pip install -r requirements.txt
 From the repo root, in a separate shell:
 
 ```bash
-claude -p "Read runbook.md and execute. Task: task-autoresearch. Run name: ar_v1."
-claude -p "Read runbook.md and execute. Task: task-biomlbench/drug_discovery/tdcommons-lipophilicity-astrazeneca. Run name: lipo_v1."
-claude -p "Read runbook.md and execute. Task: task-protein-gym. Run name: spike_v1."
+opencode run --dir "$PWD" "Read runbook.md and execute. Task: task-autoresearch. Run name: ar_v1."
+opencode run --dir "$PWD" "Read runbook.md and execute. Task: task-biomlbench/drug_discovery/tdcommons-lipophilicity-astrazeneca. Run name: lipo_v1."
+opencode run --dir "$PWD" "Read runbook.md and execute. Task: task-protein-gym. Run name: spike_v1."
 ```
 
 Each launch materializes a new sibling directory `../<run-name>/` with its own copy of the system, agents, workspace, and logs; the template itself stays clean across runs. Hardware requirements vary per task — see each `task-<name>/README.md`.
+
+OpenCode uses your configured default provider and model. To select explicit models for unattended workers, set `OPENCODE_MODEL` or role-specific overrides such as `OPENCODE_GPU_MODEL`, `OPENCODE_ANALYST_MODEL`, and `OPENCODE_MONITOR_MODEL` using OpenCode's `provider/model` format. Worker sessions allow unattended edits and shell commands by default; run AutoScientists only with repositories and task inputs you trust. See `system/reference/OPENCODE-RUNNER.md` for details.
 
 ## Adding a new task
 

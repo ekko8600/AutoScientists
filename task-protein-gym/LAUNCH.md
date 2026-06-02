@@ -27,7 +27,7 @@ This profile fills in the hooks from `runbook.md` for **baseline-evolution** tas
 {PREFIX}_gpu6
 ```
 
-Analysts run on CPU (haiku). GPU agents run sequentially — never launch two GPU agents
+Analysts run on CPU using the configured `OPENCODE_ANALYST_MODEL`. GPU agents run sequentially — never launch two GPU agents
 simultaneously (GPU contention degrades results, observed drop from 0.68 to 0.54 on
 fold_contiguous_5 when run in parallel).
 

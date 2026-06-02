@@ -480,7 +480,7 @@ whether to run this experiment or pick a lighter one from the queue instead.
 
 Apply ONE change from the experiment's diff, then **block synchronously** on
 training. Detached / fire-and-forget training is forbidden: round 19 showed
-that when the agent's claude session ends before parsing `train.stdout`, the
+that when the agent's OpenCode session ends before parsing `train.stdout`, the
 real metric is computed but never recorded — the entire cycle's work
 vanishes. The agent MUST wait for the training subprocess and then run
 Steps 5–8 in the same session.

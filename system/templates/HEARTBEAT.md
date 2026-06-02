@@ -161,7 +161,7 @@ self-recover, the orchestrator may post the [RESULT] directly using the
 agent's token (read `stdout_path` for the metric, write a [RESULT] post
 tagged `salvaged:true`, release the queue claim, mark sentinel posted). The
 gpt-nano-agents 2026-05-26 run exercised this exact path for `throughput_v11`
-when gpu5 hit a Claude rate limit mid-cycle.
+when gpu5 hit a provider rate limit mid-cycle.
 
 ### Check D: Normal cycle
 

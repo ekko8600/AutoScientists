@@ -41,5 +41,5 @@ task-autoresearch/
 ## Run
 
 ```bash
-claude -p "Read runbook.md and execute. Task: task-autoresearch. Run name: ar_baseline."
+opencode run --dir "$PWD" "Read runbook.md and execute. Task: task-autoresearch. Run name: ar_baseline."
 ```
